@@ -12,8 +12,15 @@ function App() {
   const [validity, setValidity] = useState("");
   const [expiresAt, setExpiresAt] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [stats, setStats] = useState({ total: 0, today: 0 });
   const [recentUrls, setRecentUrls] = useState([]);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Prefer system dark mode
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return true;
+    }
+    // Or saved preference
+    return localStorage.getItem('darkMode') === 'true';
+  });
 
   // Typing animation effect
   useEffect(() => {
@@ -24,17 +31,23 @@ function App() {
     }
   }, [longURL]);
 
-  // Load stats and recent URLs on component mount
+  // Load recent URLs on component mount
   useEffect(() => {
-    // Simulate loading stats
-    setStats({ total: 1247, today: 23 });
-    
-    // Load recent URLs from localStorage
     const saved = localStorage.getItem('recentUrls');
     if (saved) {
       setRecentUrls(JSON.parse(saved));
     }
   }, []);
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   const validateURL = (url) => {
     try {
@@ -119,28 +132,24 @@ function App() {
     localStorage.removeItem('recentUrls');
   };
 
+  const handleToggleDark = () => setDarkMode((d) => !d);
+
   return (
-    <div className="app-container">
+    <div className={`app-container${darkMode ? ' dark' : ''}`}>
       {/* Navbar */}
       <nav className="navbar">
         <div className="nav-content">
           <div className="nav-brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span>URL Shortener</span>
+            <img src="https://cdn.iconscout.com/icon/premium/png-512-thumb/url-33-965674.png?f=webp&w=512" alt="URL Shortener Logo" className="logo-img" />
+            <span>URL SHORTENER</span>
           </div>
-          <div className="nav-stats">
-            <div className="stat-item">
-              <span className="stat-number">{stats.total}</span>
-              <span className="stat-label">Total URLs</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-number">{stats.today}</span>
-              <span className="stat-label">Today</span>
-            </div>
-          </div>
+          <button className="dark-toggle" onClick={handleToggleDark} aria-label="Toggle light/dark mode">
+            {darkMode ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 1 0 9.79 9.79z" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="#6366f1" strokeWidth="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#6366f1" strokeWidth="2" strokeLinecap="round"/></svg>
+            )}
+          </button>
         </div>
       </nav>
 
