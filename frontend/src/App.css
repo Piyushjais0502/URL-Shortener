@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-bg {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  box-sizing: border-box;
+}
+
+.shortener-card {
+  background: #fff;
+  padding: 2.5rem 2.2rem;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(60,72,100,0.10);
+  max-width: 410px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  margin: 2rem 1rem;
+}
+
+.shortener-card h1 {
+  margin-bottom: 0.5rem;
+  color: #2d3a4b;
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -1px;
+  text-align: center;
+}
+
+.shortener-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+.shortener-form label {
+  font-size: 1rem;
+  color: #475569;
+  margin-bottom: 0.2rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.shortener-form input {
+  padding: 13px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 1.05rem;
+  background: #f8fafc;
+  transition: border 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  color: #22292f;
+}
+.shortener-form input:focus {
+  border: 1.5px solid #6366f1;
+  outline: none;
+  background: #fff;
+  color: #22292f;
+}
+.shortener-form input::placeholder {
+  color: #a0aec0;
+  opacity: 1;
+}
+
+button {
+  padding: 13px 0;
+  border: none;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #6366f1 60%, #60a5fa 100%);
+  color: white;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.07);
+  transition: background 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+button:disabled {
+  background: #c7d2fe;
+  cursor: not-allowed;
+}
+button:hover:not(:disabled), .copy-btn:hover {
+  background: linear-gradient(90deg, #4338ca 60%, #2563eb 100%);
+  box-shadow: 0 4px 16px rgba(99,102,241,0.13);
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #6366f1;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-msg {
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 10px 14px;
+  border-radius: 5px;
+  margin-top: 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+.success-msg {
+  color: #16a34a;
+  background: #bbf7d0;
+  padding: 10px 14px;
+  border-radius: 5px;
+  margin-top: 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.result-section {
+  margin-top: 1.2rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.short-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.3rem;
+  background: #f6f8fa;
+  border-radius: 5px;
+  padding: 0.2rem 0.8rem;
+  justify-content: space-between;
+  min-width: 0;
+  box-shadow: none;
+  min-height: 40px;
+}
+.short-url-row a {
+  word-break: break-all;
+  color: #2563eb;
+  font-weight: 500;
+  font-size: 1.05rem;
+  text-decoration: none;
+  line-height: 1.2;
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.copy-btn {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1.5px solid #e5e7eb;
+  padding: 4px;
+  border-radius: 50%;
+  font-size: 1rem;
+  margin-left: 2px;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: background 0.18s, box-shadow 0.18s, border 0.18s;
+  outline: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  align-self: center;
+}
+.copy-btn:hover, .copy-btn:focus {
+  background: #e5e7eb;
+  color: #111827;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.copy-btn:active {
+  background: #d1d5db;
+  color: #111827;
+}
+
+.expiry-info {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.97rem;
+  background: #f8fafc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+
+@media (max-width: 600px) {
+  .shortener-card {
+    padding: 1.2rem 0.5rem;
+    max-width: 98vw;
+    border-radius: 10px;
+    margin: 1rem 0.2rem;
+  }
+  .shortener-card h1 {
+    font-size: 1.4rem;
+  }
+  .shortener-form input, button {
+    font-size: 0.98rem;
+    padding: 11px 8px;
+  }
+  .result-section {
+    font-size: 0.97rem;
+  }
+}
