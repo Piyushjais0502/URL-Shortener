@@ -1,9 +1,6 @@
 // Direct redirect handler for short URLs
 // This makes URLs like: https://your-domain.vercel.app/abc123
 
-// Use the same global storage as shorten.js
-global.urlDatabase = global.urlDatabase || {};
-
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not found' });
   }
 
   try {
@@ -26,38 +23,66 @@ export default async function handler(req, res) {
     }
 
     console.log(`Direct redirect request for ID: ${id}`);
-    console.log(`Current DB size: ${Object.keys(global.urlDatabase).length} entries`);
-    console.log(`Available codes: ${Object.keys(global.urlDatabase).join(', ')}`);
     
-    // Look up the URL in our global database
-    const urlData = global.urlDatabase[id];
-    
-    if (!urlData) {
-      console.log(`URL not found for ID: ${id}`);
-      return res.status(404).json({ error: 'URL not found' });
-    }
-
-    // Check if expired
-    if (urlData.expiresAt && Date.now() > urlData.expiresAt) {
-      console.log(`URL expired for ID: ${id}`);
-      delete global.urlDatabase[id]; // Clean up expired entry
-      return res.status(410).json({ error: 'Short link expired' });
-    }
-
-    const destination = urlData.url;
-
-    // Validate destination URL
     try {
-      new URL(destination);
-    } catch {
-      console.log(`Invalid URL stored for ID: ${id}`);
-      return res.status(400).json({ error: 'Invalid redirect URL' });
+      // Decode the shortcode back to URL data
+      // First, restore the base64 padding and special characters
+      let base64 = id;
+      
+      // Add padding if needed
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      
+      // Restore special characters
+      base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+      
+      // Decode from base64
+      const decoded = Buffer.from(base64, 'base64').toString('utf8');
+      const urlData = JSON.parse(decoded);
+      
+      console.log(`Decoded URL data:`, urlData);
+      
+      // Check if expired
+      if (urlData.expiresAt && Date.now() > urlData.expiresAt) {
+        console.log(`URL expired for ID: ${id}`);
+        return res.status(410).json({ error: 'Short link expired' });
+      }
+
+      const destination = urlData.url;
+
+      // Validate destination URL
+      try {
+        new URL(destination);
+      } catch {
+        console.log(`Invalid URL decoded for ID: ${id}`);
+        return res.status(400).json({ error: 'Invalid redirect URL' });
+      }
+      
+      console.log(`Redirecting ID: ${id} to URL: ${destination}`);
+      
+      // Redirect to the original URL
+      res.redirect(302, destination);
+      
+    } catch (decodeError) {
+      console.error('Failed to decode shortcode:', decodeError);
+      
+      // Fallback for some demo codes
+      const demoUrls = {
+        'demo': 'https://www.google.com',
+        'test': 'https://www.github.com',
+        'example': 'https://www.vercel.com',
+        'google': 'https://www.google.com',
+        'github': 'https://www.github.com'
+      };
+      
+      if (demoUrls[id]) {
+        console.log(`Using demo URL for ID: ${id}`);
+        res.redirect(302, demoUrls[id]);
+      } else {
+        return res.status(404).json({ error: 'URL not found or invalid shortcode' });
+      }
     }
-    
-    console.log(`Redirecting ID: ${id} to URL: ${destination}`);
-    
-    // Redirect to the original URL
-    res.redirect(302, destination);
     
   } catch (error) {
     console.error('Error in direct redirect:', error);

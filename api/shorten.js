@@ -85,9 +85,6 @@ function shortenUrl(url, shortcode = '', validity = null) {
   };
 }
 
-// Simple global storage (resets on cold starts, but works for demo)
-global.urlDatabase = global.urlDatabase || {};
-
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -132,33 +129,45 @@ export default async function handler(req, res) {
       expiresAt = Date.now() + validityNum * 60 * 1000;
     }
 
-    // Generate or use custom shortcode
     let code;
-    if (shortcode && shortcode.trim()) {
-      code = shortcode.trim();
-      // Check if already exists
-      if (global.urlDatabase[code] && (!global.urlDatabase[code].expiresAt || global.urlDatabase[code].expiresAt > Date.now())) {
-        return res.status(409).json({ error: 'Custom shortcode already in use' });
-      }
-    } else {
-      // Generate a random short code
-      do {
-        code = Math.random().toString(36).substring(2, 8);
-      } while (global.urlDatabase[code] && (!global.urlDatabase[code].expiresAt || global.urlDatabase[code].expiresAt > Date.now()));
-    }
     
-    // Store in global database
-    global.urlDatabase[code] = {
-      url: finalUrl,
-      expiresAt: expiresAt,
-      createdAt: Date.now()
-    };
+    if (shortcode && shortcode.trim()) {
+      // For custom shortcodes, encode the URL data with the custom code
+      const urlData = {
+        url: finalUrl,
+        expiresAt: expiresAt,
+        custom: shortcode.trim()
+      };
+      
+      // Encode the data as base64 and make it URL-safe
+      const encoded = Buffer.from(JSON.stringify(urlData))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      
+      code = encoded.substring(0, 12); // Keep it reasonably short
+    } else {
+      // For auto-generated codes, encode just the URL and expiration
+      const urlData = {
+        url: finalUrl,
+        expiresAt: expiresAt
+      };
+      
+      // Encode the data as base64 and make it URL-safe
+      const encoded = Buffer.from(JSON.stringify(urlData))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      
+      code = encoded.substring(0, 8); // Shorter for auto-generated
+    }
     
     const baseUrl = `https://${req.headers.host}`;
     const shortUrl = `${baseUrl}/${code}`;
     
-    console.log(`Shortened URL: ${finalUrl} to ID: ${code} (stored in global DB)`);
-    console.log(`Current DB size: ${Object.keys(global.urlDatabase).length} entries`);
+    console.log(`Shortened URL: ${finalUrl} to ID: ${code} (encoded in shortcode)`);
 
     res.status(200).json({ 
       shortUrl, 
