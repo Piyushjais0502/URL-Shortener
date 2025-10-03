@@ -1,5 +1,6 @@
 import "./App.css";
 import { useState, useEffect } from "react";
+import { shortenUrl, checkApiHealth } from "./config/api.js";
 
 function App() {
   const [longURL, setLongURL] = useState("");
@@ -13,6 +14,7 @@ function App() {
   const [expiresAt, setExpiresAt] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [recentUrls, setRecentUrls] = useState([]);
+  const [apiStatus, setApiStatus] = useState('checking');
   const [darkMode, setDarkMode] = useState(() => {
     // Prefer system dark mode
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -31,12 +33,23 @@ function App() {
     }
   }, [longURL]);
 
-  // Load recent URLs on component mount
+  // Load recent URLs and check API health on component mount
   useEffect(() => {
     const saved = localStorage.getItem('recentUrls');
     if (saved) {
       setRecentUrls(JSON.parse(saved));
     }
+    
+    // Check API health
+    checkApiHealth().then(health => {
+      if (health) {
+        setApiStatus('healthy');
+        console.log('API is healthy:', health);
+      } else {
+        setApiStatus('unavailable');
+        console.warn('API is unavailable');
+      }
+    });
   }, []);
 
   // Apply dark mode class to body
@@ -77,36 +90,33 @@ function App() {
 
     setLoading(true);
     try {
-      const body = { url: longURL };
-      if (customCode.trim()) body.shortcode = customCode.trim();
-      if (validity.trim()) body.validity = parseInt(validity, 10);
-      const res = await fetch("http://localhost:3000/shorten", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setShortURL(data.shortUrl);
-        setSuccess("URL shortened successfully! ✨");
-        setExpiresAt(data.expiresAt);
-        
-        // Save to recent URLs
-        const newUrl = {
-          original: longURL,
-          shortened: data.shortUrl,
-          timestamp: new Date().toISOString()
-        };
-        const updated = [newUrl, ...recentUrls.slice(0, 4)];
-        setRecentUrls(updated);
-        localStorage.setItem('recentUrls', JSON.stringify(updated));
-      } else {
-        setError(data.error || "Error shortening URL. Please try again.");
-      }
+      const data = await shortenUrl(longURL, customCode, validity);
+      
+      setShortURL(data.shortUrl);
+      setSuccess("URL shortened successfully! ✨");
+      setExpiresAt(data.expiresAt);
+      
+      // Save to recent URLs
+      const newUrl = {
+        original: longURL,
+        shortened: data.shortUrl,
+        timestamp: new Date().toISOString()
+      };
+      const updated = [newUrl, ...recentUrls.slice(0, 4)];
+      setRecentUrls(updated);
+      localStorage.setItem('recentUrls', JSON.stringify(updated));
+      
     } catch (error) {
-      setError("Error shortening URL. Please try again.");
+      console.error('Shortening error:', error);
+      
+      // Better error handling
+      if (error.message.includes('fetch')) {
+        setError("Cannot connect to server. Please make sure the backend is running.");
+      } else if (error.message.includes('CORS')) {
+        setError("Connection blocked. Please check server configuration.");
+      } else {
+        setError(error.message || "Error shortening URL. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -159,6 +169,26 @@ function App() {
           <h1>Shorten Your URLs</h1>
           <p className="subtitle">Create short, memorable links in seconds</p>
           
+          {/* API Status Indicator */}
+          {apiStatus === 'checking' && (
+            <div className="api-status checking">
+              <span className="status-dot"></span>
+              Connecting to server...
+            </div>
+          )}
+          {apiStatus === 'healthy' && (
+            <div className="api-status healthy">
+              <span className="status-dot"></span>
+              Server connected
+            </div>
+          )}
+          {apiStatus === 'unavailable' && (
+            <div className="api-status unavailable">
+              <span className="status-dot"></span>
+              Server unavailable - Please start the backend
+            </div>
+          )}
+          
           <form className="shortener-form" onSubmit={e => { e.preventDefault(); handleShorten(); }}>
             <label htmlFor="long-url">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -204,7 +234,7 @@ function App() {
               id="validity"
               type="number"
               min="1"
-              placeholder="Default: 30"
+              placeholder="Leave empty for no expiration"
               value={validity}
               onChange={(e) => handleInputChange(e, setValidity)}
               autoComplete="off"
@@ -257,15 +287,13 @@ function App() {
                   )}
                 </button>
               </div>
-              {expiresAt && (
-                <div className="expiry-info">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                    <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Expires at: {new Date(expiresAt).toLocaleString()}
-                </div>
-              )}
+              <div className="expiry-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                  <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {expiresAt ? `Expires at: ${new Date(expiresAt).toLocaleString()}` : 'No expiration - Link is permanent'}
+              </div>
             </div>
           )}
 
@@ -349,7 +377,7 @@ function App() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2024 URL Shortener. Made with ❤️ for the web.</p>
+          <p>&copy; URL Shortener.</p>
         </div>
       </footer>
     </div>

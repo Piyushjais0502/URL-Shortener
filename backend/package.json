@@ -5,11 +5,14 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "dev:debug": "NODE_ENV=development DEBUG=* nodemon index.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
     "nanoid": "^5.1.5",
     "nodemon": "^3.1.10"
   }
