@@ -24,7 +24,7 @@ function normalizeUrl(url) {
 }
 
 function generateShortCode() {
-  return nanoid(8);
+  return nanoid(6); // Shorter codes: 6 characters instead of 8
 }
 
 // Main business logic
@@ -99,9 +99,9 @@ export default async function handler(req, res) {
     // Use business logic
     const result = shortenUrl(url, shortcode, validity);
     
-    // Get the base URL for the shortened link
+    // Get the base URL for the shortened link - MUCH SHORTER!
     const baseUrl = `https://${req.headers.host}`;
-    const shortUrl = `${baseUrl}/api/redirect/${result.shortcode}`;
+    const shortUrl = `${baseUrl}/${result.shortcode}`;
     
     console.log(`Shortened URL: ${result.originalUrl} to ID: ${result.shortcode}${result.expiresAt ? ` (expires: ${new Date(result.expiresAt).toISOString()})` : ' (no expiration)'}`);
 

@@ -24,14 +24,14 @@ export function normalizeUrl(url) {
 }
 
 export function generateShortCode() {
-  return nanoid(8);
+  return nanoid(6); // Shorter codes: 6 characters instead of 8
 }
 
 // Main business logic
 export function shortenUrl(url, shortcode = '', validity = null) {
   // Normalize URL
   const finalUrl = normalizeUrl(url);
-  
+
   // Validate URL
   if (!isValidUrl(finalUrl)) {
     throw new Error('Invalid URL format. Please check and try again.');
@@ -62,10 +62,10 @@ export function shortenUrl(url, shortcode = '', validity = null) {
   }
 
   // Store the URL
-  urlDatabase[code] = { 
-    url: finalUrl, 
-    expiresAt, 
-    createdAt: Date.now() 
+  urlDatabase[code] = {
+    url: finalUrl,
+    expiresAt,
+    createdAt: Date.now()
   };
 
   return {
@@ -99,7 +99,7 @@ export function getOriginalUrl(shortcode) {
 export function getStats() {
   return {
     totalUrls: Object.keys(urlDatabase).length,
-    activeUrls: Object.values(urlDatabase).filter(entry => 
+    activeUrls: Object.values(urlDatabase).filter(entry =>
       !entry.expiresAt || entry.expiresAt > Date.now()
     ).length
   };
