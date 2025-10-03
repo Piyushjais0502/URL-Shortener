@@ -32,8 +32,8 @@ export const API_BASE_URL = getApiBaseUrl();
 // API endpoints
 export const API_ENDPOINTS = {
   SHORTEN: `${API_BASE_URL}/shorten`,
-  STATUS: `${API_BASE_URL}/api/status`,
-  HEALTH: `${API_BASE_URL}/`
+  STATUS: `${API_BASE_URL}/test`,
+  HEALTH: `${API_BASE_URL}/test`
 };
 
 // API utility functions

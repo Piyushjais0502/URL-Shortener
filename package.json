@@ -1,5 +1,13 @@
 {
+  "name": "url-shortener",
+  "version": "1.0.0",
+  "description": "A URL shortener with React frontend and serverless backend",
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev",
+    "start": "cd frontend && npm run preview"
+  },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "nanoid": "^5.1.5"
   }
 }
