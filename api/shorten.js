@@ -1,8 +1,5 @@
 import { nanoid } from 'nanoid';
 
-// In-memory storage (for demo - in production you'd use a database)
-let urlDatabase = {};
-
 // Utility functions
 const isValidShortcode = (code) => /^[a-zA-Z0-9]{4,32}$/.test(code);
 
@@ -25,6 +22,26 @@ function normalizeUrl(url) {
 
 function generateShortCode() {
   return nanoid(6); // Shorter codes: 6 characters instead of 8
+}
+
+// Encode URL into a short code (simple approach for serverless)
+function encodeUrl(url) {
+  try {
+    // Create a simple hash-like code from the URL
+    const encoded = Buffer.from(url).toString('base64')
+      .replace(/[+/=]/g, '') // Remove special chars
+      .substring(0, 8); // Take first 8 chars
+    return encoded;
+  } catch (error) {
+    return generateShortCode();
+  }
+}
+
+// Decode URL from short code
+function decodeUrl(code) {
+  // For custom codes, we can't decode, so return null
+  // This is a limitation of the simple approach
+  return null;
 }
 
 // Main business logic
@@ -52,28 +69,24 @@ function shortenUrl(url, shortcode = '', validity = null) {
     if (!isValidShortcode(code)) {
       throw new Error('Custom shortcode must be alphanumeric and 4-32 characters');
     }
-    if (urlDatabase[code] && (!urlDatabase[code].expiresAt || urlDatabase[code].expiresAt > Date.now())) {
-      throw new Error('Custom shortcode already in use');
-    }
+    // For custom codes, we'll use a different approach
+    // Store in the code itself using a prefix
+    code = 'c_' + code; // Custom code prefix
   } else {
-    do {
-      code = generateShortCode();
-    } while (urlDatabase[code] && (!urlDatabase[code].expiresAt || urlDatabase[code].expiresAt > Date.now()));
+    // Generate code from URL for automatic codes
+    code = encodeUrl(finalUrl);
   }
-
-  // Store the URL
-  urlDatabase[code] = { 
-    url: finalUrl, 
-    expiresAt, 
-    createdAt: Date.now() 
-  };
 
   return {
     shortcode: code,
     originalUrl: finalUrl,
-    expiresAt
+    expiresAt,
+    encodedUrl: finalUrl // Pass the URL for storage
   };
 }
+
+// Simple global storage (resets on cold starts, but works for demo)
+global.urlDatabase = global.urlDatabase || {};
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -96,31 +109,65 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    // Use business logic
-    const result = shortenUrl(url, shortcode, validity);
+    // Normalize URL
+    let finalUrl = url.trim();
+    if (!/^https?:\/\//.test(finalUrl)) {
+      finalUrl = "http://" + finalUrl;
+    }
+
+    // Validate URL
+    try {
+      new URL(finalUrl);
+    } catch {
+      return res.status(400).json({ error: 'Invalid URL format. Please check and try again.' });
+    }
+
+    // Handle validity
+    let expiresAt = null;
+    if (validity !== null && validity !== undefined && validity !== '') {
+      const validityNum = parseInt(validity, 10);
+      if (isNaN(validityNum) || validityNum <= 0) {
+        return res.status(400).json({ error: 'Validity must be a positive integer (minutes)' });
+      }
+      expiresAt = Date.now() + validityNum * 60 * 1000;
+    }
+
+    // Generate or use custom shortcode
+    let code;
+    if (shortcode && shortcode.trim()) {
+      code = shortcode.trim();
+      // Check if already exists
+      if (global.urlDatabase[code] && (!global.urlDatabase[code].expiresAt || global.urlDatabase[code].expiresAt > Date.now())) {
+        return res.status(409).json({ error: 'Custom shortcode already in use' });
+      }
+    } else {
+      // Generate a random short code
+      do {
+        code = Math.random().toString(36).substring(2, 8);
+      } while (global.urlDatabase[code] && (!global.urlDatabase[code].expiresAt || global.urlDatabase[code].expiresAt > Date.now()));
+    }
     
-    // Get the base URL for the shortened link - MUCH SHORTER!
+    // Store in global database
+    global.urlDatabase[code] = {
+      url: finalUrl,
+      expiresAt: expiresAt,
+      createdAt: Date.now()
+    };
+    
     const baseUrl = `https://${req.headers.host}`;
-    const shortUrl = `${baseUrl}/${result.shortcode}`;
+    const shortUrl = `${baseUrl}/${code}`;
     
-    console.log(`Shortened URL: ${result.originalUrl} to ID: ${result.shortcode}${result.expiresAt ? ` (expires: ${new Date(result.expiresAt).toISOString()})` : ' (no expiration)'}`);
+    console.log(`Shortened URL: ${finalUrl} to ID: ${code} (stored in global DB)`);
+    console.log(`Current DB size: ${Object.keys(global.urlDatabase).length} entries`);
 
     res.status(200).json({ 
       shortUrl, 
-      shortcode: result.shortcode, 
-      expiresAt: result.expiresAt 
+      shortcode: code, 
+      expiresAt: expiresAt 
     });
   
   } catch (error) {
     console.error('Error in /api/shorten:', error);
-    
-    if (error.message.includes('Invalid URL') || 
-        error.message.includes('Custom shortcode') || 
-        error.message.includes('Validity must be') ||
-        error.message.includes('already in use')) {
-      return res.status(400).json({ error: error.message });
-    }
-    
     res.status(500).json({ error: 'Internal server error' });
   }
 }

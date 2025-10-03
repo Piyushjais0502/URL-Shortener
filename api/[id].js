@@ -1,6 +1,9 @@
 // Direct redirect handler for short URLs
 // This makes URLs like: https://your-domain.vercel.app/abc123
 
+// Use the same global storage as shorten.js
+global.urlDatabase = global.urlDatabase || {};
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,20 +25,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Shortcode is required' });
     }
 
-    // For demo purposes, redirect to a placeholder
-    // In production, you'd look up the URL in your database
     console.log(`Direct redirect request for ID: ${id}`);
+    console.log(`Current DB size: ${Object.keys(global.urlDatabase).length} entries`);
+    console.log(`Available codes: ${Object.keys(global.urlDatabase).join(', ')}`);
     
-    // Temporary redirect to show it works
-    // You can replace this with actual database lookup
-    const demoUrls = {
-      'demo': 'https://www.google.com',
-      'test': 'https://www.github.com',
-      'example': 'https://www.vercel.com',
-      'anubhav123': 'https://www.google.com'
-    };
+    // Look up the URL in our global database
+    const urlData = global.urlDatabase[id];
     
-    const destination = demoUrls[id] || 'https://www.google.com';
+    if (!urlData) {
+      console.log(`URL not found for ID: ${id}`);
+      return res.status(404).json({ error: 'URL not found' });
+    }
+
+    // Check if expired
+    if (urlData.expiresAt && Date.now() > urlData.expiresAt) {
+      console.log(`URL expired for ID: ${id}`);
+      delete global.urlDatabase[id]; // Clean up expired entry
+      return res.status(410).json({ error: 'Short link expired' });
+    }
+
+    const destination = urlData.url;
+
+    // Validate destination URL
+    try {
+      new URL(destination);
+    } catch {
+      console.log(`Invalid URL stored for ID: ${id}`);
+      return res.status(400).json({ error: 'Invalid redirect URL' });
+    }
     
     console.log(`Redirecting ID: ${id} to URL: ${destination}`);
     
